@@ -93,8 +93,8 @@ def metric(pred, true):
     返回：
         mae, mse, rmse, mape, mspe, acc, cr, sr
     """
-    pred = pred.reshape(pred.shape[0], -1)
-    true = true.reshape(true.shape[0], -1)
+    pred = pred.reshape(1, -1)
+    true = true.reshape(1, -1)
 
     mae = MAE(pred, true)
     mse = MSE(pred, true)

@@ -264,14 +264,11 @@ class Dataset_Custom(Dataset):
         border2 = border2s[self.set_type]
 
         # 根据 features 类型提取输入数据（去掉date列）
-        if self.features == 'M':
-            cols_data = df_raw.columns[1:]  # 除去date
-            df_data = df_raw[cols_data]
-        elif self.features == 'MS':
-            cols_data = df_raw.columns[1:].drop(self.target)  # 去掉目标列
+        if self.features == 'M' or self.features == 'MS':
+            cols_data = df_raw.columns[1:]
             df_data = df_raw[cols_data]
         elif self.features == 'S':
-            df_data = df_raw[[self.target]]  # 只保留目标列作为输入
+            df_data = df_raw[[self.target]]
 
         # # 归一化数据，仅对输入进行处理
         # if self.scale:
