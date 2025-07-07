@@ -1,0 +1,39 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+     "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python 调试 TimeXer2 399300",
+            "type": "debugpy",  
+            "request": "launch",
+            "program": "${workspaceFolder}/run.py",  //  指定你要调试的主程序
+            "console": "integratedTerminal",         //  保持终端交互
+            "args": [                                // 填入你的命令行参数
+                "--task_name", "long_term_forecast",
+                "--is_training", "1",
+                "--root_path", "./dataset/",
+                "--data_path", "399300.csv",
+                "--model_id", "399300_TimeXer", 
+                "--model", "TimeXer",
+                "--data", "custom",
+                "--features", "MS",
+                "--seq_len", "96",
+                "--label_len", "48",
+                "--pred_len", "1",
+                "--e_layers", "2",
+                "--factor", "3",
+                "--enc_in", "7",
+                "--dec_in", "7",
+                "--c_out", "1",
+                "--d_model", "256",
+                "--batch_size", "4",
+                "--des", "Exp",
+                "--itr", "1",
+                "--inverse",
+                "--target", "OT"
+            ]
+        }
+    ]
+}

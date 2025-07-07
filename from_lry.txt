@@ -1,0 +1,101 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+            "name": "Python: run.py dlinear2",
+            "type": "python",
+            "request": "launch",
+            "program": "run.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--task_name", "long_term_forecast",
+                "--is_training", "1",
+                "--root_path", "./dataset/datas/",
+                "--data_path", "data3_t.csv",
+                "--model_id", "Dlinear",
+                "--model", "DLinear",
+                "--data", "custom",
+                "--features", "MS",
+                "--seq_len", "90",
+                "--label_len", "45",
+                "--pred_len", "1",
+                "--e_layers", "2",
+                "--d_layers", "1",
+                "--factor", "3",
+                "--enc_in", "7",
+                "--dec_in", "321",
+                "--c_out", "1",
+                "--des", "Exp",
+                "--itr", "1",
+                "--inverse",
+                "--target", "Adj Close"
+            ]
+        },
+        {
+            "name": "Python: run.py timexer3",
+            "type": "python",
+            "request": "launch",
+            "program": "run.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--task_name", "long_term_forecast",
+                "--is_training", "1",
+                "--root_path", "./dataset/datas/",
+                "--data_path", "data3_t.csv",
+                "--model_id", "timexer3",
+                "--model", "TimeXer",
+                "--data", "custom",
+                "--features", "MS",
+                "--seq_len", "96",
+                "--label_len", "48",
+                "--pred_len", "1",
+                "--e_layers", "1",
+                "--factor", "3",
+                "--enc_in", "7",
+                "--dec_in", "7",
+                "--c_out", "1",
+                "--d_model", "256",
+                "--batch_size", "4",
+                "--des", "Exp",
+                "--itr", "1",
+                "--inverse",
+                "--target", "Adj Close"
+            ]
+        },
+        {
+            "name": "Python: run.py timexer2",
+            "type": "python",
+            "request": "launch",
+            "program": "run.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--task_name", "long_term_forecast",
+                "--is_training", "1",
+                "--root_path", "./dataset/datas/",
+                "--data_path", "data2.csv",
+                "--model_id", "timexer2",
+                "--model", "TimeXer",
+                "--data", "custom",
+                "--features", "MS",
+                "--seq_len", "96",
+                "--label_len", "48",
+                "--pred_len", "1",
+                "--e_layers", "2",
+                "--factor", "3",
+                "--enc_in", "7",
+                "--dec_in", "7",
+                "--c_out", "7",
+                "--d_model", "256",
+                "--batch_size", "4",
+                "--des", "Exp",
+                "--itr", "1",
+                "--inverse",
+                "--target", "OT"
+            ]
+        }
+    ]
+}

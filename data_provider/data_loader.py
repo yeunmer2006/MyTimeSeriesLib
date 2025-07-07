@@ -208,44 +208,53 @@ class Dataset_Custom(Dataset):
     def __init__(self, args, root_path, flag='train', size=None,
                  features='S', data_path='ETTh1.csv',
                  target='OT', scale=True, timeenc=0, freq='h', seasonal_patterns=None):
-        # size [seq_len, label_len, pred_len]
+        # 初始化 Dataset_Custom，主要用于读取、处理并提供训练/验证/测试集数据
         self.args = args
-        # info
+
+        # 数据序列长度设置：[输入序列长度，标签序列长度，预测长度]
         if size == None:
-            self.seq_len = 24 * 4 * 4
-            self.label_len = 24 * 4
-            self.pred_len = 24 * 4
+            self.seq_len = 24 * 4 * 4  # 默认输入长度96（4天）
+            self.label_len = 24 * 4    # 默认标签长度96（用于decoder输入）
+            self.pred_len = 24 * 4     # 默认预测长度96
         else:
             self.seq_len = size[0]
             self.label_len = size[1]
             self.pred_len = size[2]
-        # init
+
+        # 验证 flag 是否有效，并映射到对应数字
         assert flag in ['train', 'test', 'val']
         type_map = {'train': 0, 'val': 1, 'test': 2}
         self.set_type = type_map[flag]
 
+        # 设置数据特征类型（S, M, MS）、目标列、是否归一化、时间编码方式、频率
         self.features = features
         self.target = target
         self.scale = scale
         self.timeenc = timeenc
         self.freq = freq
 
+        # 数据路径
         self.root_path = root_path
         self.data_path = data_path
+
+        # 调用数据读取函数
         self.__read_data__()
 
     def __read_data__(self):
-        self.scaler = StandardScaler()
-        df_raw = pd.read_csv(os.path.join(self.root_path,
-                                          self.data_path))
+        # self.scaler = StandardScaler()  # 标准归一化器（均值0方差1）
+        # 对输入特征和目标分别使用两个 scaler
+        self.scaler_x = StandardScaler()
+        self.scaler_y = StandardScaler()
+        # 读取原始CSV数据
+        df_raw = pd.read_csv(os.path.join(self.root_path, self.data_path))
 
-        '''
-        df_raw.columns: ['date', ...(other features), target feature]
-        '''
+        # 调整列顺序：将目标列放在最后（格式为 ['date', 其他特征..., target]）
         cols = list(df_raw.columns)
         cols.remove(self.target)
         cols.remove('date')
         df_raw = df_raw[['date'] + cols + [self.target]]
+
+        # 划分训练、验证、测试数据的边界
         num_train = int(len(df_raw) * 0.7)
         num_test = int(len(df_raw) * 0.2)
         num_vali = len(df_raw) - num_train - num_test
@@ -254,56 +263,92 @@ class Dataset_Custom(Dataset):
         border1 = border1s[self.set_type]
         border2 = border2s[self.set_type]
 
-        if self.features == 'M' or self.features == 'MS':
-            cols_data = df_raw.columns[1:]
+        # 根据 features 类型提取输入数据（去掉date列）
+        if self.features == 'M':
+            cols_data = df_raw.columns[1:]  # 除去date
+            df_data = df_raw[cols_data]
+        elif self.features == 'MS':
+            cols_data = df_raw.columns[1:].drop(self.target)  # 去掉目标列
             df_data = df_raw[cols_data]
         elif self.features == 'S':
-            df_data = df_raw[[self.target]]
+            df_data = df_raw[[self.target]]  # 只保留目标列作为输入
 
+        # # 归一化数据，仅对输入进行处理
+        # if self.scale:
+        #     train_data = df_data[border1s[0]:border2s[0]]  # 只用训练集进行归一化拟合
+        #     self.scaler.fit(train_data.values)
+        #     data = self.scaler.transform(df_data.values)
+        # else:
+        #     data = df_data.values
+
+        # 对输入特征做 scaler_x 归一化
         if self.scale:
-            train_data = df_data[border1s[0]:border2s[0]]
-            self.scaler.fit(train_data.values)
-            data = self.scaler.transform(df_data.values)
+            train_x = df_data[border1s[0]:border2s[0]]  # 只用训练集进行归一化拟合
+            self.scaler_x.fit(train_x.values)
+            data_x_all = self.scaler_x.transform(df_data.values)
         else:
-            data = df_data.values
+            data_x_all = df_data.values
 
+        # 对目标列做 scaler_y（始终用未标准化的目标列）
+        raw_y_all = df_raw[[self.target]].values
+        if self.scale:
+            train_y = raw_y_all[border1s[0]:border2s[0]]    
+            self.scaler_y.fit(train_y)
+            data_y_all = self.scaler_y.transform(raw_y_all)
+        else:
+            data_y_all = raw_y_all
+        
+        # 时间戳处理
         df_stamp = df_raw[['date']][border1:border2]
-        df_stamp['date'] = pd.to_datetime(df_stamp.date)
+        df_stamp['date'] = pd.to_datetime(df_stamp.date)  # 转换为 datetime 类型
+
+        # 时间特征编码（如月、日、星期几、小时）
         if self.timeenc == 0:
             df_stamp['month'] = df_stamp.date.apply(lambda row: row.month, 1)
             df_stamp['day'] = df_stamp.date.apply(lambda row: row.day, 1)
             df_stamp['weekday'] = df_stamp.date.apply(lambda row: row.weekday(), 1)
             df_stamp['hour'] = df_stamp.date.apply(lambda row: row.hour, 1)
-            data_stamp = df_stamp.drop(['date'], 1).values
+            data_stamp = df_stamp.drop(['date'], 1).values  # 去掉date列，保留时间特征
         elif self.timeenc == 1:
             data_stamp = time_features(pd.to_datetime(df_stamp['date'].values), freq=self.freq)
-            data_stamp = data_stamp.transpose(1, 0)
+            data_stamp = data_stamp.transpose(1, 0)  # 转置成时间维度在前
 
-        self.data_x = data[border1:border2]
-        self.data_y = data[border1:border2]
+        # 保存归一化后的输入数据（用于训练）
+        self.data_x = data_x_all[border1:border2]
+        self.data_y = data_y_all[border1:border2]
 
+        # 数据增强（如果设置了增强比例）
         if self.set_type == 0 and self.args.augmentation_ratio > 0:
-            self.data_x, self.data_y, augmentation_tags = run_augmentation_single(self.data_x, self.data_y, self.args)
+            self.data_x, self.data_y, augmentation_tags = run_augmentation_single(
+                self.data_x, self.data_y, self.args
+            )
 
+        # 保存时间戳特征
         self.data_stamp = data_stamp
+        self.scaler = self.scaler_y
 
     def __getitem__(self, index):
-        s_begin = index
-        s_end = s_begin + self.seq_len
-        r_begin = s_end - self.label_len
-        r_end = r_begin + self.label_len + self.pred_len
+        # 给定一个索引，生成一个样本（包含输入序列、预测目标、时间戳）
 
-        seq_x = self.data_x[s_begin:s_end]
-        seq_y = self.data_y[r_begin:r_end]
-        seq_x_mark = self.data_stamp[s_begin:s_end]
-        seq_y_mark = self.data_stamp[r_begin:r_end]
+        s_begin = index  # 输入起点
+        s_end = s_begin + self.seq_len  # 输入终点
+        r_begin = s_end - self.label_len  # 目标起点（decoder起点）
+        r_end = r_begin + self.label_len + self.pred_len  # 目标终点
+
+        # 提取输入、目标和时间编码（encoder和decoder的）
+        seq_x = self.data_x[s_begin:s_end]  # encoder 输入
+        seq_y = self.data_y[r_begin:r_end]  # decoder 目标（包含label_len + pred_len）
+        seq_x_mark = self.data_stamp[s_begin:s_end]  # encoder 的时间编码
+        seq_y_mark = self.data_stamp[r_begin:r_end]  # decoder 的时间编码
 
         return seq_x, seq_y, seq_x_mark, seq_y_mark
 
     def __len__(self):
+        # 返回样本数量（总长度减去输入序列和预测长度）
         return len(self.data_x) - self.seq_len - self.pred_len + 1
 
     def inverse_transform(self, data):
+        # 用于预测值反归一化为原始值
         return self.scaler.inverse_transform(data)
 
 
