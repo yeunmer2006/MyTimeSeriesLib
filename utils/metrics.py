@@ -64,24 +64,51 @@ def SR(pred):
 
 def strategy_cr(pred, true):
     """
-    计算策略累计收益率
-    策略：预测明天上涨则当天买入，预测下跌则当天空仓
+    计算策略累计收益率（按实际交易逻辑）
+    策略规则：
+    1. 初始本金1万元
+    2. 预测明天涨：今天收盘买入，明天收盘卖出
+    3. 预测明天跌：今天持现不操作
+    4. 最终计算资产相对于本金的变化率
+    
     输入：
         pred: 预测价格序列，shape (batch, seq_len)
         true: 真实价格序列，shape (batch, seq_len)
     输出：
         平均累计收益率
     """
-    pred_diff = pred[:, 1:] - pred[:, :-1]
-    pred_signal = (pred_diff > 0).astype(float)  # 买入信号
-
-    true_diff = true[:, 1:] - true[:, :-1]
-    true_return = true_diff / (true[:, :-1] + 1e-8)
-
-    strategy_return = pred_signal * true_return  # 只在预测上涨时参与收益
-    cumulative_return = np.prod(1 + strategy_return, axis=1) - 1  # 每条序列的累计收益率
-
-    return np.mean(cumulative_return)
+    batch_size = pred.shape[0]
+    final_returns = []
+    
+    for i in range(batch_size):
+        cash = 10000.0  # 初始本金1万
+        position = 0.0  # 持仓数量
+        seq_len = pred.shape[1]
+        
+        for t in range(seq_len - 1):
+            # 预测明日涨跌
+            will_rise = pred[i, t+1] > pred[i, t]
+            
+            if will_rise:
+                # 预测涨：今日买入（如果当前是现金）
+                if position == 0 and cash > 0:
+                    position = cash / true[i, t]
+                    cash = 0.0
+            else:
+                # 预测跌：今日卖出（如果当前有持仓）
+                if position > 0:
+                    cash = position * true[i, t]
+                    position = 0.0
+        
+        # 序列结束时平仓（如果还有持仓）
+        if position > 0:
+            cash = position * true[i, -1]
+        
+        # 计算该序列的最终收益率
+        final_return = (cash - 10000) / 10000
+        final_returns.append(final_return)
+    
+    return np.mean(final_returns)
 
 
 def metric(pred, true):

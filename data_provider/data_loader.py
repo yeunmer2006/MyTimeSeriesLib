@@ -207,7 +207,7 @@ class Dataset_ETT_minute(Dataset):
 class Dataset_Custom(Dataset):
     def __init__(self, args, root_path, flag='train', size=None,
                  features='S', data_path='ETTh1.csv',
-                 target='OT', scale=True, timeenc=0, freq='h', seasonal_patterns=None):
+                 target='OT', scale=True, timeenc=0, freq='h', seasonal_patterns=None,data_test_path=None):
         # 初始化 Dataset_Custom，主要用于读取、处理并提供训练/验证/测试集数据
         self.args = args
 
@@ -232,11 +232,11 @@ class Dataset_Custom(Dataset):
         self.scale = scale
         self.timeenc = timeenc
         self.freq = freq
-
+        self.seasonal_patterns = seasonal_patterns
         # 数据路径
         self.root_path = root_path
         self.data_path = data_path
-
+        self.data_test_path = data_test_path  # 可能的测试数据
         # 调用数据读取函数
         self.__read_data__()
 
@@ -262,7 +262,7 @@ class Dataset_Custom(Dataset):
         border2s = [num_train, num_train + num_vali, len(df_raw)]
         border1 = border1s[self.set_type]
         border2 = border2s[self.set_type]
-
+        self.raw_dates = df_raw['date'].values[border1:border2]
         # 根据 features 类型提取输入数据（去掉date列）
         if self.features == 'M' or self.features == 'MS':
             cols_data = df_raw.columns[1:]
@@ -347,7 +347,15 @@ class Dataset_Custom(Dataset):
     def inverse_transform(self, data):
         # 用于预测值反归一化为原始值
         return self.scaler.inverse_transform(data)
-
+    def get_pred_dates(self, index):
+        """获取指定索引对应的预测日期范围"""
+        s_begin = index
+        s_end = s_begin + self.seq_len
+        pred_start = s_end  # 预测开始位置
+        pred_end = pred_start + self.pred_len  # 预测结束位置
+        
+        # 返回预测时间段的所有日期
+        return self.raw_dates[pred_start:pred_end]
 
 class Dataset_M4(Dataset):
     def __init__(self, args, root_path, flag='pred', size=None,

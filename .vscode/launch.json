@@ -34,6 +34,38 @@
                 "--inverse",
                 "--target", "OT"
             ]
+        },
+        {
+            "name": "Python 调试 TimeXer DJIA",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/run.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--task_name", "long_term_forecast",
+                "--is_training", "1",
+                "--root_path", "./dataset/",
+                "--data_path", "djia_processed.csv",
+                "--model_id", "DJIA_TimeXer",
+                "--model", "TimeXer",
+                "--data", "custom",
+                "--features", "MS",
+                "--seq_len", "96",
+                "--label_len", "48",
+                "--pred_len", "1",
+                "--e_layers", "2",
+                "--factor", "3",
+                "--enc_in", "6",
+                "--dec_in", "6",
+                "--c_out", "1",
+                "--d_model", "256",
+                "--batch_size", "4",
+                "--des", "Exp",
+                "--itr", "1",
+                "--inverse",
+                "--target", "OT",
+                "--freq", "d"
+            ]
         }
     ]
 }
